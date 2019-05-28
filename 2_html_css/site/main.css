@@ -1,0 +1,18 @@
+.black-article {
+           color: white;
+           background-color: black;
+           font-size: 40px;
+}
+
+/*.red는 red라는 클래스를 가지는 이라는 의미, 여기서 .(점)을 찍어주는게 포인트*/
+.red {
+    color: red;
+}
+
+.blue {
+    color: blue;
+}
+
+.big {
+    font-size: 100px;
+}
