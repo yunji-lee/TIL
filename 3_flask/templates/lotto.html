@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ultimate Lotto</title>
+</head>
+<body>
+<table>
+    <tr>
+        {% for i in [1, 2, 3, 4, 5, 6, 'bonus'] %}
+        <th>{{ i }}</th>
+        {% endfor %}
+    </tr>
+    <tr>
+        {% for i in real_number %}
+            <td>{{ i }}</td>
+        {% endfor %}
+        <td>
+            {{ bonus }}
+        </td>
+    </tr>
+    <tr>
+        {% for i in lucky_number %}
+            <td>{{ i }}</td>
+        {% endfor %}
+    </tr>
+</table>
+</body>
+</html>
