@@ -36,9 +36,12 @@ python app.py 입력
 
 ----
 
-server가 client가 보낸 요청을 처리하는 일련의 행동을 보면
+## flask학습의 핵심
 
-1. 주문서확인
+client가 보낸 요청을 'server가 처리하는 일련의 행동'을 보면
+
+0. 요청 request
+1. 주문서확인, URL분석
 2. 함수실행 , action
 3. html로 출력
-
+4. 문서를 내보낸다

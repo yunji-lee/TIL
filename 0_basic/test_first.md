@@ -97,6 +97,9 @@ $ git commint -m '코멘트' # 특정 파일/dir 관리 시작
 $ git push origin master
 
 $ git log # 확인하기
+
+.gitignore 파일 관리해야한다
+
 ```
 
 

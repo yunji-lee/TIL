@@ -1,7 +1,7 @@
 from flask import Flask, render_template
 import random
 
-print(__name__) # __name__ 은 스트링이 들어있는 변수다
+print(__name__) # __name__ 은 __main__이라는 스트링인 값이 들어있는 변수다
 app = Flask(__name__)
 
 
@@ -67,3 +67,7 @@ if __name__ == '__main__':
 
 #localhost는 무슨 의미인가?
 
+
+
+# ==> 이 파일의 핵심
+# 다른 파일로 함수들을 옮겨 둠으로 qpp.py에서 핵심로직만 볼 수 있게 되었다는 점이 핵심
