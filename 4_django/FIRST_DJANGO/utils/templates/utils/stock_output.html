@@ -1,0 +1,17 @@
+{% extends 'utils/base.html' %}
+
+{% block title %} {% endblock %}
+
+{% block body %}
+<h1>Result</h1>
+
+{% if is_ok %}
+<p>
+    {{ data }}
+</p>
+{% else %}
+<p>
+    {{ message }}
+</p>
+{% endif %}
+{% endblock %}

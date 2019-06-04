@@ -40,8 +40,8 @@ python app.py 입력
 
 client가 보낸 요청을 'server가 처리하는 일련의 행동'을 보면
 
-0. 요청 request
+0. 요청 request, URL이 들어온다.
 1. 주문서확인, URL분석
-2. 함수실행 , action
-3. html로 출력
-4. 문서를 내보낸다
+2. 함수실행 , action이 있다면 실행
+3. html 파일을 잡아서 (일반적, 무조건은 아님)
+4. RES에 실어보낸다. 문서를 내보낸다.
