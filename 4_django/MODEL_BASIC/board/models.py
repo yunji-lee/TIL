@@ -1,6 +1,8 @@
 from django.db import models
 # 모델에는 클래스를 저장
 
+# MTV (Model Template View)
+
 
 class Article(models.Model):   # model 이라는 클래스에 Model 이라는 번역가를 같이 상속받은 클래스를 만들겠다.
     # id = Primary Key
