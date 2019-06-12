@@ -1,0 +1,10 @@
+{% extends 'posts/base.html' %}
+{% load bootstrap4 %}
+{% block body %}
+<!--form과 input태그 항상 해야하는 작업.-->
+<form action="" method="post">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    <input type="submit">
+</form>
+{% endblock %}

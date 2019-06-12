@@ -1,4 +1,4 @@
-"""board URL Configuration
+"""instagram URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/2.1/topics/http/urls/
@@ -18,5 +18,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('articles/', include('articles.urls'))
+    path('posts/', include('posts.urls')) # posts라는 url은 posts.urls로 모두 포함
 ]
