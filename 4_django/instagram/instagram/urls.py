@@ -21,7 +21,7 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('posts/', include('posts.urls')),  # posts라는 url은 posts.urls로 모두 포함
-    path('accounts/', include('accounts.ur,s'))
+    path('accounts/', include('accounts.urls'))
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

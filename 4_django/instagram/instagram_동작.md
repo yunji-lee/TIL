@@ -496,6 +496,117 @@ def create(request):
 
     
 
-    24.
+    24. 새로운 앱 추가
+
+        1) 터미널에 django-admin startapp accounts
+
+        2) setting.py INSTALLED_APP에 'accounts' 추가
+
+        3) 루트 urls.py에 path('accounts/', include('accounts.urls')) 추가
+
+        4) account폴더 안에 urls.py 생성 및 내용 추가
+
+        ```python
+        from django.urls import path
+        from . import views
+        
+        app_name = 'accounts'
+        
+        urlpatterns = [
+            path('signup/', views.signup, name='signup'),  # 회원가입
+            path('login/', views.login, name='login'),
+            path('logout/', views.logout, name='logout')
+        ]
+        ```
+
+        4) view.py
+
+        ```python
+        from django.shortcuts import render, redirect
+        from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+        from django.contrib.auth import login as auth_login
+        from django.contrib.auth import logout as auth_logout
+        
+        
+        
+        def signup(request):
+            if request.method == "POST":
+                form = UserCreationForm(request.POST)
+                if form.is_valid():
+                    form.save()
+                    return redirect('posts:index')
+            else:
+                form = UserCreationForm()
+                # 인스턴스화 시킨다는 것은?  UserCreationForm자체는 이름을 정의, ()를 붙여 모델의 정의하여 인스턴스화 한것(=생성을 한 것이라고 말해도 되나?)을 form이라는 이름으로 저장?
+            return render(request, 'accounts/signup.html', {'form':form}) # 왜 signup으로? usercreationform은 유저생성만을 위한 폼이니까. form으로 한 것은 postform에서는 create와 update 두가지 기능이 있었으니까!
+        
+        
+        def login(request):
+            if request.method == "POST":
+                form = AuthenticationForm(request, request.POST)  #AuthenticationForm은 인자로 request를 추가로 넣어준다.
+                if form.is_valid():
+                    auth_login(request, form.get_user())
+                    return redirect('posts:index')
+            else:
+                form = AuthenticationForm()  # 인증
+            return render(request, 'accounts/login.html', {'form':form})
+        
+        
+        def logout(request):
+            auth_logout(request)
+            return redirect('posts:index')
+        ```
+
+        5) instagram>accounts>templates(폴더생성)>accounts(폴더생성)>signup.html(생성) 후 작성
+
+        ```html
+        {% extends 'posts/base.html' %}
+        {%load bootstrap4%}
+        
+        {% block body %}
+            <form action="" method="post">
+                <!-- csrf_token은 post메소드를 사용하기 위함        -->
+                {% csrf_token %}
+                {% bootstrap_form form %}
+                <input class="btn btn-primary" type="submit" value="회원가입">
+            </form>
+        {% endblock %}
+        ```
+
+        6) instagram>accounts>templates>accounts>signup.html(생성) 후 작성
+
+        ```html
+        {% extends 'posts/base.html' %}
+        {%load bootstrap4%}
+        
+        {% block body %}
+            <form action="" method="post">
+                <!-- csrf_token은 post메소드를 사용하기 위함        -->
+                {% csrf_token %}
+                {% bootstrap_form form %}
+                <input class="btn btn-primary" type="submit" value="로그인">
+            </form>
+        {% endblock %}
+        ```
+
+
+
+25. base.html 수정
+
+    instagram>posts>templates>posts>base.html 에서 navbar 수정
+
+    ```html
+      <div class="navbar-nav">
+                <a class="nav-item nav-link active" href="{% url 'posts:create' %}">
+                    NEW<span class="sr-only">(current)</span>
+          		</a>
+                {% if user.is_authenticated %}
+                    <a class="nav-item nav-link" href="{% url 'accounts:logout' %}">LogOut</a>
+                {% else %}
+                    <a class="nav-item nav-link" href="{% url 'accounts:signup' %}">SignUp</a>
+                    <a class="nav-item nav-link" href="{% url 'accounts:login' %}">LogIn</a>
+                {% endif %}
+            </div>
+    ```
 
     
