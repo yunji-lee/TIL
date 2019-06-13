@@ -1,0 +1,501 @@
+1. create.html
+
+   1) form 태그안에 method="post"추가
+
+   2)     {% csrf_token %} 추가
+
+```html
+{% extends 'posts/base.html' %}
+
+{% block body %}
+<h1>글 작성</h1>
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit">
+</form>
+{% endblock %}
+```
+
+
+
+2. veiw.py
+
+   1) def create 안의 if문 수정
+
+   2) import에서 render뒤에 redirect추가
+
+```python
+from django.shortcuts import render, redirect
+from .forms import PostForm
+
+
+def index(request):
+    return render(request, 'posts/index.html')
+
+
+def create(request):
+    if request.method == "POST":
+        form = PostForm(request.POST)
+        form.save()
+        return redirect("posts:index")
+    else:
+        form = PostForm()
+        context = {
+            'form':form
+        }
+        return render(request, 'posts/create.html', context)
+```
+
+
+
+3. admin.py 수정
+
+```python
+from django.contrib import admin
+from .models import Post
+
+
+admin.site.register(Post)
+```
+
+
+
+4. user생성
+
+```sh
+student@M9029 MINGW64 ~/TIL/4_django/instagram (master)
+$ python manage.py createsuperuser
+```
+
+
+
+5. veiw.py
+
+   1) def create: 에서  if문 안에 if문 생성
+
+   2) 실행 흐름(번호순) 잘 이해하기!
+
+```python
+from django.shortcuts import render, redirect
+from .forms import PostForm
+
+
+def index(request):
+    return render(request, 'posts/index.html')
+
+
+def create(request):
+    # create 가 실행되는 조건
+    #  1. get 방식으로 데이터를 입력할 수 있는 form 을 요청한다.
+    #  4. 사용자가 데이터를 입력해서 post 요청을 보낸다.
+    #  9. 사용자가 적절한 데이터를 입력해서 post 요청을 보낸다.
+    if request.method == "POST":
+        # 5. (post 방식으로 저장요청을 받고) 데이터를 받아서 PostForm 을 인스턴스화 한다.
+        # 10. 데이터를 받아서 PostForm 을 인스턴스화 한다.
+        form = PostForm(request.POST)
+        # 6. 데이터 검증을 한다.
+        # 11. 데이터 검증을 한다.
+        if form. is_valid():   # vaild 하면 저장
+            # 12. 적절한 데이터가 들어온다. 저장을 하고 인덱스로 보낸다.
+            form.save()
+            return redirect("posts:index")
+        else:                  # vaild 안하면 반환
+            # 7. is_vaild 가 False 인 경우, 즉 적절하지 않은 데이터가 들어옴.
+            pass
+    else:
+        # 2. PostForm 을 인스턴스화 해서 form 변수에 저장
+        form = PostForm()
+
+    context = {
+        'form':form  # 여기에 있는 form 이 무엇인지 잘 이해하기
+    }
+    # 3. 만들어진 form 을 create.html 에 담아서 전송
+    # 8. 사용자가 정확하게 입력한 데이터를 유지한 상태의 form 을 전송
+    return render(request, 'posts/create.html', context)
+
+    #  form = PostForm()에서 
+    # request가 있는 PostForm과 없는 PostForm의 차이는
+    # request가 있는 PostForm은 기존에 사용자가 적었던 것이 form에 있다는 것
+```
+
+??? models.py가 있는데 forms.py를 만들어서 쓰는 이유는? 
+		==>	정리의 문제
+
+models: DB모델들을 관리, 데이터베이스에 어떻게 정의하겠다
+
+forms: 폼들을 관리, 포스트가 바뀌면 알아서 폼도 바꿔준다 /  field=all
+
+
+
+6. view.py
+
+   1) def index 수정
+
+   2) import 수정
+
+   ```python
+   from django.shortcuts import render, redirect
+   from .forms import PostForm
+   from .models import Post
+   
+   
+   def index(request):
+       posts = Post.objects.all()
+       context = {
+           'posts':posts
+       }
+       return render(request, 'posts/index.html', context)
+   ```
+
+
+
+7. index.html 수정
+
+```sh
+{% extends 'posts/base.html' %}
+
+{% block body %}
+<h1>인덱스 페이지</h1>
+{% for post in posts %}
+    {% include 'posts/_post.html' %}
+{% endfor %}
+{% endblock %}
+```
+
+
+
+8. _post.html 생성
+
+   ​	1) 부트스트랩 Components에서 card
+
+   ​	2) https://picsum.photos/여기서 img의 src='인자값' 가져오기
+
+   ​	3) 부트스트랩 Layout에서 Grid
+
+```html
+<div class="card">
+  <img src="https://picsum.photos/id/{{post.id}}/300/300" class="card-img-top" alt="...">
+  <div class="card-body">
+<!--    <h5 class="card-title">Card title</h5>-->
+    <p class="card-text">{{post.content}}</p>
+<!--    <a href="#" class="btn btn-primary">Go somewhere</a>-->
+  </div>
+</div>
+```
+
+
+
+9. index 수정
+
+```html
+{% extends 'posts/base.html' %}
+
+{% block body %}
+{% for post in posts %}
+    <div class="row">
+    {% include 'posts/_post.html' %}
+    </div>
+{% endfor %}
+{% endblock %}
+```
+
+
+
+10. _post.html 수정
+
+    1) div class 값 수정
+
+```html
+<div class="card col-md-6 my-3">
+  <img src="https://picsum.photos/id/{{post.id}}/300/300" class="card-img-top" alt="...">
+  <div class="card-body">
+<!--    <h5 class="card-title">Card title</h5>-->
+    <p class="card-text">{{post.content}}</p>
+<!--    <a href="#" class="btn btn-primary">Go somewhere</a>-->
+  </div>
+</div>
+```
+
+
+
+11. base.html수정
+
+    1) navbar에서 url설정
+
+    ```html
+     <nav class="navbar navbar-expand-lg navbar-light bg-light">
+          <a class="navbar-brand" href="{% url 'posts:index %}">
+              <i class="fab fa-instagram"></i> | Instagram
+          </a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+            <div class="navbar-nav">
+              <a class="nav-item nav-link active" href="{% url 'posts:create' %}"> NEW <span class="sr-only">(current)</span></a>
+              <a class="nav-item nav-link" href="#">My page</a>
+            </div>
+          </div>
+        </nav>
+    ```
+
+    
+
+12. django bootstrap 4 설치
+
+    1) pip install django-bootstrap4
+
+    2) setting.py에  'bootstrap4' 추가
+
+    ==> 13번에서 bootstrap_form을 사용하기 위해서(bootstrap홈페이지의 gird form)
+
+13. create.html
+
+    ```html
+    {% extends 'posts/base.html' %}
+    {% load bootstrap4 %}
+    {% block body %}
+    <h1>글 작성</h1>
+    <!--form과 input태그 항상 해야하는 작업.-->
+    <form action="" method="post">
+        {% csrf_token %}
+        {% bootstrap_form form %}
+        <input type="submit">
+    </form>
+    {% endblock %}
+    ```
+
+    
+
+14. urls.py, update부분 수정
+
+    ```python
+        # Update - 포스트 수정하기
+        path('<int:post_id>/update/', views.update, name="update"),
+    ```
+
+
+
+15. view.py 
+
+    1) update부분 수정
+
+    2)def create부분 하단 수정
+
+    ```python
+    def update(request, post_id):
+        #포스트 방식으로 들어올 떄 : 사용자가 입력한 데이터 가져와서 기존 데이터 수정하기
+        #겟방식으로 들어올 때 : 기존의 정보 담아서 수정페이지 보여주기
+        if request.method == 'POST':
+            pass
+        else:
+            post = Post.objects.get(id=post_id)
+            form = PostForm(instance=post)
+        return render(request, 'posts/form.html', {'form':form}) # create의 context부분과 동일한 점을 인지하자
+    ```
+
+    ```python
+        return render(request, 'posts/form.html', context)
+    	# 후에 create.html을 form.html로 수정
+    ```
+
+    3) update부분 마저 수정하기
+
+    ```python
+    def update(request, post_id):
+        #포스트 방식으로 들어올 떄 : 사용자가 입력한 데이터 가져와서 기존 데이터 수정하기
+        #겟방식으로 들어올 때 : 기존의 정보 담아서 수정페이지 보여주기
+        post = Post.objects.get(id=post_id)
+        if request.method == 'POST':
+            # form = PostForm(request.POST) # 새로만드는것
+            form = PostForm(request.POST, instance=post)  # 기존의 instance(사용자)는 post야
+            #PostForm(data=request.POST, instance=post)에서 data=은 생략됨
+            if form.is_valid():
+                form.save()
+                return redirect("posts:index")
+            else:
+                pass
+        else:
+            form = PostForm(instance=post)
+        return render(request, 'posts/form.html', {'form':form}) # create의 context부분과 동일한 점을 인지하자
+    ```
+
+    ?? is_valid 폼에 맞는 값을 넣었는지, false라면 save안되게 설정하는 것
+
+15. _post.html
+
+    1) 버튼달기
+
+    ```html
+    <div class="card col-md-6 my-3">
+      <img src="https://picsum.photos/id/{{post.id}}/300/300" class="card-img-top" alt="...">
+      <div class="card-body">
+    <!--    <h5 class="card-title">Card title</h5>-->
+        <p class="card-text">{{post.content}}</p>
+    <!--    <a href="#" class="btn btn-primary">Go somewhere</a>-->
+          <a class="btn btn-warning" href="{% url 'posts:update' post.id %}">수정</a>
+      </div>
+    </div>
+    ```
+
+----
+
+(6/13)
+
+17. models.py
+
+1) post class수정
+
+```python
+class Post(models.Model):
+    content = models.TextField()
+    image = models.ImageField(blank=True)  # makemigrations 하면 사진없어서 2 번으로나오고 blank로 일단 설정
+```
+
+
+
+18. forms.html
+
+1) form태그안에 enctype 추가
+
+```html
+{% extends 'posts/base.html' %}
+{% load bootstrap4 %}
+{% block body %}
+<!--form과 input태그 항상 해야하는 작업.-->
+<form action="" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    <input type="submit">
+</form>
+{% endblock %}
+```
+
+
+
+19. views.py
+
+1) def create 수정, 10. 번아래 request.FILES 추가
+
+```python
+def create(request):
+    # create 가 실행되는 조건
+    #  1. get 방식으로 데이터를 입력할 수 있는 form 을 요청한다.
+    #  4. 사용자가 데이터를 입력해서 post 요청을 보낸다.
+    #  9. 사용자가 적절한 데이터를 입력해서 post 요청을 보낸다.
+    if request.method == "POST":
+        # 5. (post 방식으로 저장요청을 받고) 데이터를 받아서 PostForm 을 인스턴스화 한다.
+        # 10. 데이터를 받아서 PostForm 을 인스턴스화 한다.
+        form = PostForm(request.POST, request.FILES)
+        # 6. 데이터 검증을 한다.
+        # 11. 데이터 검증을 한다.
+        if form. is_valid():   # vaild 하면 저장
+            # 12. 적절한 데이터가 들어온다. 저장을 하고 인덱스로 보낸다.
+            form.save()
+            return redirect("posts:index")
+        else:                  # vaild 안하면 반환
+            # 7. is_vaild 가 False 인 경우, 즉 적절하지 않은 데이터가 들어옴.
+            pass
+    else:
+        # 2. PostForm 을 인스턴스화 해서 form 변수에 저장
+        form = PostForm()
+
+    context = {
+        'form':form  # 여기에 있는 form 이 무엇인지 잘 이해하기
+    }
+    # 3. 만들어진 form 을 create.html 에 담아서 전송
+    # 8. 사용자가 정확하게 입력한 데이터를 유지한 상태의 form 을 전송
+    return render(request, 'posts/form.html', context)
+```
+
+ ==> 이상태로 새로 게시물 작성하면 사진은 Instagram 프로젝트파일(루트파일)에 저장됨. 이는 효과적이지 않음.
+
+
+
+20. settings.py
+
+    1) 파일 맨 아래에 추가
+
+    ```python
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    # 동일 파일 내 있는 BASE_DIR을 참조한다는 것,  주소설정을 한다는 것
+    ```
+
+    2) 이후에 서버에서 게시물 하나 더 생성하면, media라는 폴더가 생기고 그 안에 사진이 저장됨
+
+    
+
+21. instagram 폴더안(최상단)의 urls.py
+
+    1)  기존 코드 아래에 추가
+
+    ```python
+    from django.conf.urls.static import static
+    from django.conf import settings # settings.AUTH_USER_MODEL 쓸 때 불러왔던 것
+    
+    
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    #urlpatterns += static('/media/')로 사용해도 되지만 변수화하여 사용하는게 좋으므로 위의 코드를 사용
+    ```
+
+    
+
+22. views.py
+
+    1) 최신순으로 바꾸기, def index를 수정 
+
+    ​		: posts = 의 맨뒷부분
+
+    ```python
+    def index(request):
+        posts = Post.objects.all().order_by('-id')
+        context = {
+            'posts':posts
+        }
+        return render(request, 'posts/index.html', context)
+    ```
+
+
+
+23. 이미지 수정에는 두개의 라이브러리가 추가적으로 필요 (image resizing)
+
+    <https://github.com/matthewwithanm/django-imagekit>  #imagekit관련 공식문서
+
+    1) pip install pilkit
+
+    ​    pip install django-imagekit
+
+    2) 이후에 setting.py의 INSTALL_APPS에 'imagekit'추가
+
+    ​    => 최종사용이 imagekit이고 이 imagekit이 pikit에 붙어있어서? imagekit만 추가하면됨
+
+    3) models.py
+
+    ```python
+    from imagekit.models import ProcessedImageField #추가
+    from imagekit.processors import ResizeToFill 	#추가
+    from django.db import models
+    
+    
+    class Post(models.Model):
+        content = models.TextField()
+        # image = models.ImageField(blank=True)  # makemigrations 하면 사진없어서 2 번으로나오고 blank로 일단 설정
+        image = ProcessedImageField(
+            upload_to='posts/images',            # 올리는 위치 설정
+            processors=[ResizeToFill(600, 600)],  #
+            format='JPEG',                        #
+            options={'quality': 90}               # 원본대비 품질 설정
+        )
+    ```
+
+    ​	4) 이후 python manage.py makemigrations와 python manage.py migrate 실행
+
+    ​	==> 새 게시물을 작성하여 사진의 resizeing을 확인해보기
+
+    
+
+    24.
+
+    

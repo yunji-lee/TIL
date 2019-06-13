@@ -12,4 +12,8 @@ urlpatterns = [
 
     # Update - 포스트 수정하기
     path('<int:post_id>/update/', views.update, name="update"),
+
+    # Delete - 포스트 삭제하기
+    path('<int:post_id>delete/', views.delete, name="delete")
 ]
+

@@ -4,7 +4,7 @@ from .models import Post
 
 
 def index(request):
-    posts = Post.objects.all()
+    posts = Post.objects.all().order_by('-id')
     context = {
         'posts':posts
     }
@@ -19,7 +19,7 @@ def create(request):
     if request.method == "POST":
         # 5. (post 방식으로 저장요청을 받고) 데이터를 받아서 PostForm 을 인스턴스화 한다.
         # 10. 데이터를 받아서 PostForm 을 인스턴스화 한다.
-        form = PostForm(request.POST)
+        form = PostForm(request.POST, request.FILES)
         # 6. 데이터 검증을 한다.
         # 11. 데이터 검증을 한다.
         if form. is_valid():   # vaild 하면 저장
@@ -61,3 +61,9 @@ def update(request, post_id):
     else:
         form = PostForm(instance=post)
     return render(request, 'posts/form.html', {'form':form}) # create의 context부분과 동일한 점을 인지하자
+
+
+def delete(request, post_id):
+    post = Post.objects.get(id=post_id)
+    post.delete()
+    return redirect("posts:index")
