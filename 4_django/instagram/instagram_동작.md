@@ -610,3 +610,413 @@ def create(request):
     ```
 
     
+    
+    
+    
+    ----
+    
+    6/17
+    
+    
+    
+    * posts앱의 models.py 수정
+    
+      1) class Post안에 user생성 및 연결
+    
+      ```python
+      from django.conf import settings
+      
+      class Post()
+      	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+        # user = models.ForeignKey(어떤 모델과 연결할지, 어떻게 처리할지)
+      ```
+    
+      2) python manage.py makemigrations -> 1(Enter) -> 1(Enter)
+    
+      ​    python manage.py migrate
+    
+    ​      => 여기서 서버를 실행해보면 user를 선택할 수 있게되어있는데, user를 선택할 수 있게하면 안되고 자동으로 로그인된 user로 되게끔 해야함. 이게이어서 수정할 내용임
+
+
+
+- posts앱의 form.py 수정
+
+  1) field 수정
+
+  ```python
+  class PostForm(forms.ModelForm):
+      class Meta:
+          model = Post
+          # fields = '__all__'
+          fields = ['content', 'image' ] # 어떤내용 보여줄지 설정하는 것
+  ```
+
+  
+
+- view.py
+
+  1) def create 수정
+
+  ```python
+          if form. is_valid():   # vaild 하면 저장
+              # 12. 적절한 데이터가 들어온다. 저장을 하고 인덱스로 보낸다.
+              ### 아래의 3줄이 수정한 부분
+             post = form.save(commit=False)  
+             # DB에 반영되기전 압축하는 것. 'commit=False' = DB에 넣지는 마
+             # 왜냐하면 유저정보 안넣었으니까, 아래 라인이 유저정보 넣는거야!
+             post.user = request.user        
+             post.save()                     # 이제 컬럼 다 채웠으니까 저장해!!
+              return redirect("posts:index")
+          else:                  # vaild 안하면 반환
+              # 7. is_vaild 가 False 인 경우, 즉 적절하지 않은 데이터가 들어옴.
+              pass
+  ```
+
+  => 이상태로 실행하면 로그아웃하고 게시물작성 하면 오류가 뜸. 이걸 또 수정하겠죠?
+
+  
+
+  2) import 하나 하고 def create() 윗 줄에 한 줄 삽입
+
+  ```python
+  from django.contrib.auth.decorators import login_required
+  
+  @login_required
+  def create(request):
+      
+      
+  # update()와 delete에도 윗줄에 써주기
+  ```
+
+  => 로그인 안하면 못쓰게 설정.  logout하고 new하면 뜨는 url
+
+  => logout하고 new하면 뜨는 url : <http://127.0.0.1:8000/accounts/login/?next=/posts/create/>
+
+  ​    : 로그인하면  next이후의 url로 옮겨다 줄게 라는 말이지만
+
+  ​    : 막상 수정하고 실행하면 게시물작성페이지가 아니라 index페이지로 이동함 ㅋㅋ
+
+  
+
+
+
+- _posts
+
+- 1) 게시물에 username나오게 하기
+
+  ```html
+  <p class="card-text"><strong>{{post.user.username}}</strong>{{post.content}}</p>
+  ```
+
+
+
+- base.html
+
+  ```html
+  <a href="">{{user}}님 반갑습니다.</a> 
+  # 
+  ```
+
+  
+
+- 내가 작성하지 않은 것 수정, 삭제 못하게
+
+  1) views.py 
+
+  : def update() 수정
+
+  ```python
+  def update(request, post_id):
+      post = Post.objects.get(id=post_id) 
+      # Post의 user(글을 보는 사람)와 request의 유저(=작성하는 사람)의 차이
+      if request.user == post.user:
+          # 내가 작성한 글일 떄
+          if request.method == 'POST':
+              # form = PostForm(request.POST) # 새로만드는것
+              form = PostForm(request.POST, instance=post)  # 기존의 instance(사용자)는 post야
+              #PostForm(data=request.POST, instance=post)에서 data=은 생략됨
+              if form.is_valid():
+                  form.save()
+                  return redirect("posts:index")
+              else:
+                  pass
+          else:
+              form = PostForm(instance=post)
+          return render(request, 'posts/form.html', {'form':form}) # create의 context부분과 동일한 점을 인지하자
+      else:
+          # 내가 작성하지 않은 글일 때
+          return redirect("posts:index")
+  ```
+
+  2) _posts.html 수정
+
+  : 수정, 삭제 버튼있는 a 태그를 if 문으로 감싸기
+
+  ```python
+  {% if post.user == user %}
+  <a class="btn btn-warning" href="{% url 'posts:update' post.id %}">수정</a>
+  <a class="btn btn-warning" href="{% url 'posts:delete' post.id %}">삭제</a>
+  {% endif %}
+  ```
+
+
+
+- 댓글기능 추가하기
+
+  1) posts 앱에서 models.py
+
+  ```python
+  class Comment(models.Model):
+      content = models.TextField()
+      user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+      post = models.ForeignKey(Post, on_delete=models.CASCADE) #여기Post는 Post모델
+  ```
+
+  => python manage.py makemigrations 
+
+  ​    python manage.py migrate
+
+  2) admin.py
+
+  ```python
+  from django.contrib import admin
+  from .models import Post, Comment
+  
+  
+  admin.site.register(Post)
+  admin.site.register(Comment)
+  ```
+
+  3)urls.py에 추가
+
+  ```python
+   # Comment_create
+      path('<int:post_id>/comments/create', views.comment_create, name="comment_create"),
+  ```
+
+  4) views.py
+
+  ```python
+  from .forms import PostForm, CommentForm
+  from .models import Post, Comment
+  
+  def index(request):
+      posts = Post.objects.all().order_by('-id')
+      comment_form = CommentForm()
+      context = {
+          'posts':posts
+          'comment_form':comment_form
+      }
+      return render(request, 'posts/index.html', context)
+  
+  
+  
+  @login_required
+  def comment_create(request, post_id):
+      post = Post.objects.get(id=post_id)
+      if request.method == "POST":  
+  # 원래는 url을 하나만 쓰려고 if문으로 처리, 여기서는 get방식 안쓸거라 else문 필요없다.
+          comment_form = CommentForm(request.POST)
+          if comment_form.is_valid():
+              comment = comment_form.save(commit=False)
+              comment.user = request.user  # 지금 로그인한 사람
+              comment.post = post  # 바로 위에서 정의한 post
+            # comment.post_id = post_id  
+      # 윗줄 대신 이것도 가능, 둘의 차이점은 post 객체 자체를 가져오느냐 post의 숫자(id)를 가져오느냐
+              comment.save()
+              return redirect("posts:index")
+  ```
+
+  5) forms.py
+
+  ```python
+  from .models import Comment
+  
+  class CommentForm(forms.ModelForm):
+      class Meta:
+          model = Comment
+          fields = ['content']
+  ```
+
+  6) _posts.html
+
+  : 맨 상단에 {% load bootstrap4 %}추가
+
+  : 댓글 출력, 댓글 폼 추가
+
+  ```html
+      {% if post.image %}
+        <img src="{{ post.image.url }}" class="card-img-top" alt="...">
+      {% else %}
+        <img src="https://picsum.photos/id/{{post.id}}/300/300" class="card-img-top" alt="...">
+      {% endif %}
+      <div class="card-body">
+    <!--    <h5 class="card-title">Card title</h5>-->
+        <p class="card-text"><strong>{{post.user.username}}</strong>{{post.content}}</p>
+          <!--    <a href="#" class="btn btn-primary">Go somewhere</a>-->
+          {% if post.user == user %}
+          <a class="btn btn-warning" href="{% url 'posts:update' post.id %}">수정</a>
+          <a class="btn btn-warning" href="{% url 'posts:delete' post.id %}">삭제</a>
+          {% endif %}
+      </div>
+      <!--  댓글 출력 시작   -->
+      <div class="card-body">
+          {% for comment in post.comment_set.all%}
+              <p><strong>{{ comment.user.username }}</strong>{{ comment.content }}</p>
+          {% empty %}
+              <p>댓글이 없습니다.</p>
+          {% endfor %}
+      </div>
+      <!--  댓글 출력 끝  -->
+      <!--  댓글 폼 시작  -->
+      <div class="card-body">
+          <form action="{% url 'posts:comment_create' post.id %}" method="post">
+              {% csrf_token %}
+              {% bootstrap_form comment_form %}
+              <input type="submit">
+          </form>
+      </div>
+      <!--  댓글 폼 끝  -->
+  </div>
+  ```
+
+  
+
+- content 칸 줄이기
+
+  1) models.py
+
+  : class Comment(): 에서 content의 TextField를 CharField로
+
+  ```python
+  class Comment(models.Model):
+      content = models.CharField(max_length=100)
+      user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+      post = models.ForeignKey(Post, on_delete=models.CASCADE) #여기Post는 Post모델
+  ```
+
+   : python manage.py makemigrations 
+
+   : python manage.py migrate
+
+  2) _posts.html
+
+  : 댓글 폼 변경
+
+  ```html
+              {% csrf_token %}
+              {# bootstrap_form comment_form #}
+              {% bootstrap_field comment_form.content show_label=False %}
+  ```
+
+  
+
+- 회원가입 변경(회원가입 후 로그인실행)
+
+  1) accounts의 views.py
+
+  : def signup() 부분
+
+  :is_valid()부분 수정
+
+  ```python
+  		 if form.is_valid():
+              user = form.save()
+              auth_login(request, user)
+              return redirect('posts:index')
+  ```
+
+  
+
+- 좋아요기능, N:N설정
+
+  ![N대N_관계](C:\Users\student\Desktop\N대N_관계.jpg)
+
+  1) models.py
+
+  : class Post()에 like_users 추가
+
+  ```python
+  class Post(models.Model):
+      like_users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='like_posts')
+      user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+      content = models.TextField()
+      # image = models.ImageField(blank=True)  # makemigrations 하면 사진없어서 2 번으로나오고 blank로 일단 설정
+      image = ProcessedImageField(
+          upload_to='posts/images',            # 올리는 위치 설정
+          processors=[ResizeToFill(600, 600)],  #
+          format='JPEG',                        #
+          options={'quality': 90}               # 원본대비 품질 설정
+      )
+  ```
+
+   : python manage.py makemigrations 
+
+   : python manage.py migrate
+
+  2) urls.py
+
+  :path 추가
+
+  ```python
+  # Like
+      path('<int:posts_id>/likes', views.likes, name="likes"),
+  ```
+
+  3) posts\view.py
+
+  : def likes 추가
+
+  ```python
+  def likes(request, post_id):
+      user = request.user
+      post = Post.objects.get(id=post_id)
+  
+      # 이미 좋아요가 눌러졌으면
+      if user in post.like_users.all(): #지금 로그인한 사람이 post.like_users에 속해있나? 즉 좋아요 눌렀는가에 대한 것
+          # 좋아요 취소
+          post.like_users.remove(user)
+      # 좋아요 안했으면
+      else:
+          # 좋아요 추가
+          post.like_users.add(user)
+      return redirect("posts:index")
+  ```
+
+  4) _posts.html
+
+  ```html
+      <div class="card-body">
+    <!--    <h5 class="card-title">Card title</h5>-->
+          <p>{{ post.like_users.count }}명이 좋아합니다.</p>
+          <p class="card-text"><strong>{{post.user.username}}</strong>{{post.content}}</p>
+          <!--    <a href="#" class="btn btn-primary">Go somewhere</a>-->
+          {% if user in post.like_users.all %}
+          <a href="{% url 'posts:likes' post.id %}"><i class="fas fa-heart"></i></a>
+          {% else %}
+          <a href="{% url 'posts:likes' post.id %}"><i class="far fa-heart"></i></a>
+          {% endif %}
+          {% if post.user == user %}
+          <a class="btn btn-warning" href="{% url 'posts:update' post.id %}">수정</a>
+          <a class="btn btn-warning" href="{% url 'posts:delete' post.id %}">삭제</a>
+          {% endif %}
+      </div>
+  ```
+
+
+
+- 추가 작업, 로그인이랑 회원가입
+
+  1) accounts\views.py
+
+  ```python
+  def signup(request):
+      if request.user.is_authenticated:
+          return redirect("posts:index")
+  
+  def login(request):
+      if request.user.is_authenticated:
+          return redirect("posts:index")
+  ```
+
+  
