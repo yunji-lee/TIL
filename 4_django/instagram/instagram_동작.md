@@ -1019,4 +1019,267 @@ def create(request):
           return redirect("posts:index")
   ```
 
+    
+
+- 하트 누르면 그 게시물에 멈추기! redirect해도
+
+  1)index.html
+
+  : div에 id값 주기
+
+  ```html
+  {% extends 'posts/base.html' %}
   
+  {% block body %}
+  {% for post in posts %}
+      <div class="row" id="post_{{ post.id }}">
+      {% include 'posts/_post.html' %}
+      </div>
+  {% endfor %}
+  {% endblock %}
+  ```
+
+  2)views.py
+
+  : likes의 redirect값 수정
+
+  ```python
+    return redirect(f"/posts/#post_{post.id}")
+  ```
+
+  
+
+---
+
+6/18
+
+### User 모델의 확장 여러 가지 기법
+
+- 프록시 모델 사용하기
+- User 모델과 일대일관계의 프로필 테이블 추가하기(profile을 활용한 ono-to-one관계 활용하기)
+- `AbstractUser` 모델 상속한 사용자 정의 User 모델 사용하기
+- `AbstractBaseUser` 모델 상속한 사용자 정의 User 모델 사용하기
+
+
+
+- 유저모델 확장하기 및 user_page생성
+
+  1) sqlite삭제
+
+  2) migration 삭제, _init_제외
+
+  3) setting.py
+
+  ```python
+  # 맨 아래에 추가
+  AUTH_USER_MODEL = 'accounts.User'
+  ```
+
+  4) models.py
+  
+  ```python
+  from django.db import models
+  from django.contrib.auth.models import AbstractUser
+  from django.conf import settings
+  
+  
+  class User(AbstractUser):
+      follow = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="follower")  
+      # settiong의 맨 아래에 선언한 user
+  ```
+  
+   : python manage.py makemigrations 
+  
+   : python manage.py migrate
+  
+   : python manage.py createsuperuser
+  
+  5) accounts\admin.py
+  
+  ```python
+  from django.contrib import admin
+  from .models import User
+  
+  admin.site.register(User)
+  ```
+  
+  6) accounts\forms.py 생성 및 입력
+  
+  ```python
+  from django.contrib.auth.forms import UserCreationForm
+  from .models import User
+  
+  
+  class CustomUserCreationForm(UserCreationForm):
+      class Meta:
+          model = User
+          fields = ('username', )
+  ```
+  
+  7) accounts\views.py
+  
+  ```python
+  from .forms import CustomUserCreationForm #추가
+  from .models import User  #추가
+  
+  # signup수정
+  # form의 User어쩌고form을 CustomUserCreationForm으로 변경
+         
+  # user_page 생성
+  def user_page(request, user_id):
+      user_info = User.objects.get(id=user_id)
+      context = {
+          'user_info': user_info
+      }
+      return render(request, 'accounts/user_page.html', context)
+  ```
+  
+  8) accounts\urls.py 추가
+  
+  ```python
+      path('<int:user_id>', views.user_page, name='user_page'),
+      path('<int:user_id>/follow/', views.follow, name='follow'),
+  ```
+  
+  9) accounts\templates\accounts\user_page.html을 생성 및 입력
+  
+  ```html
+  {% extends 'posts/base.html' %}
+  
+  {% block body %}
+  <!--현재 로그인한 사람의 정보-->
+  <!--{{ user_info }}님의 페이지 입니다.-->
+  
+  <div class="row">
+      <div class="col-4 d-flex justify-content-center">
+          <!--프로필 이미지 넣는 공간 -->
+          <img src="https://picsum.photos/id/{{user_info.id}}/300/300/" alt="..." class="rounded-circle">
+      </div>
+      <div class="col-8">
+          <!--정보가 보여지는 공간-->
+          <h3>{{user_info.username}}</h3>
+          {% if user != user_info %}
+              {% if user_info in user.follow.all %}
+                  <a class="btn btn-primary" href="{% url 'accounts:follow' user_info.id %}">팔로우 취소</a>
+              {% else %}
+                  <a class="btn btn-primary" href="{% url 'accounts:follow' user_info.id %}">팔로우</a>
+              {% endif %}
+          {% endif %}
+          <div class="d-flex justify-content-start">
+              <p class="row mx-2">게시물 {{user_info.post_set.count}}</p>
+              <p class="row mx-2">팔로워 {{user_info.follower.count}}</p>
+              <p class="row mx-2">팔로워 {{user_info.follow.count}}</p>
+          </div>
+      </div>
+  </div>
+  <div class="card-columns">
+      {% for post in user_info.post_set.all %}
+          {% include 'posts/_post.html' %}
+      {% endfor %}
+  </div>
+  {% endblock %}
+  ```
+  
+  10)  _post.html
+  
+  ```html
+  {% load bootstrap4 %}
+  {% if request.resolver_match.url_name == 'index' %}
+  <div class="card col-md-6 my-3">
+  {% else %}
+  <div class="card my-3">
+  {% endif %}
+      {% if post.image %}
+        <img src="{{ post.image.url }}" class="card-img-top" alt="...">
+      {% else %}
+        <img src="https://picsum.photos/id/{{post.id}}/300/300" class="card-img-top" alt="...">
+      {% endif %}
+      <div class="card-body">
+    <!--    <h5 class="card-title">Card title</h5>-->
+          <p>{{ post.like_users.count }}명이 좋아합니다.</p>
+          <p class="card-text"><strong><a href="{% url 'accounts:user_page' post.user.id %}">{{post.user.username}}</a></strong>{{post.content}}</p>
+          <!--    <a href="#" class="btn btn-primary">Go somewhere</a>-->
+          {% if user in post.like_users.all %}
+          <a href="{% url 'posts:likes' post.id %}"><i class="fas fa-heart" style="color:#ed4956"></i></a>
+          {% else %}
+          <a href="{% url 'posts:likes' post.id %}"><i class="far fa-heart" style="color:#ed4956"></i></a>
+          {% endif %}
+          {% if post.user == user %}
+          <a class="btn btn-warning" href="{% url 'posts:update' post.id %}">수정</a>
+          <a class="btn btn-warning" href="{% url 'posts:delete' post.id %}">삭제</a>
+          {% endif %}
+      </div>
+      {% if request.resolver_match.url_name == 'index' %}
+      <!--  댓글 출력 시작   -->
+      <div class="card-body">
+          {% for comment in post.comment_set.all%}
+              <p><strong>{{ comment.user.username }}</strong>{{ comment.content }}</p>
+          {% empty %}
+              <p>댓글이 없습니다.</p>
+          {% endfor %}
+      </div>
+      <!--  댓글 출력 끝  -->
+      <!--  댓글 폼 시작  -->
+      <div class="card-body">
+          <form action="{% url 'posts:comment_create' post.id %}" method="post">
+              {% csrf_token %}
+              {# bootstrap_form comment_form #}
+              {% bootstrap_field comment_form.content show_label=False %}
+              <input type="submit">
+          </form>
+      </div>
+      <!--  댓글 폼 끝  -->
+      {% endif %}
+  </div>
+  ```
+  
+  
+
+- 팔로우 기능
+
+  1) views.py
+
+  ```python
+  def follow(request, user_id):
+      me = request.user
+      you = User.objects.get(id=user_id)
+      # 자기 자신을 팔로우 할 수 없도록
+      if me != you:
+          # 나 중심
+          # if you in me.follow.all() : # 팔로우 했으면
+          #     me.follow.remove(you) # 팔로우 취소
+          # else : # 팔로우 안했으면
+          #     me.follow.add(you) # 팔로우 추가
+  
+          # 너 중심
+          if me in you.follower.all():
+              you.follower.remove(me)
+          else:
+              you.follower.add(me)
+      else :
+          pass
+      return redirect('accounts:user_page', you.id)
+      # return redirect('accounts:user_page', user_id)
+  ```
+
+  2) _post.html
+
+  ```html
+   <p>{{ post.like_users.count }}명이 좋아합니다.</p>
+    <!--아래 p태그 추가-->
+          <p class="card-text"><strong><a href="{% url 'accounts:user_page' post.user.id %}">{{post.user.username}}</a></strong>{{post.content}}</p>
+  ```
+
+  3) user_page.html
+
+  ```html
+  {{user_info.username}}님의 페이지 입니다.
+  <!--아래 a태그 추가-->
+  <a href="{% url 'accounts:follow' user_info.id %}">팔로우</a>
+  <p>{{user_info.follower.all}}</p>
+  ```
+
+  
+
+----
+

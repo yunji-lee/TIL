@@ -1,5 +1,9 @@
 {% load bootstrap4 %}
+{% if request.resolver_match.url_name == 'index' %}
 <div class="card col-md-6 my-3">
+{% else %}
+<div class="card my-3">
+{% endif %}
     {% if post.image %}
       <img src="{{ post.image.url }}" class="card-img-top" alt="...">
     {% else %}
@@ -8,7 +12,7 @@
     <div class="card-body">
   <!--    <h5 class="card-title">Card title</h5>-->
         <p>{{ post.like_users.count }}명이 좋아합니다.</p>
-        <p class="card-text"><strong>{{post.user.username}}</strong>{{post.content}}</p>
+        <p class="card-text"><strong><a href="{% url 'accounts:user_page' post.user.id %}">{{post.user.username}}</a></strong>{{post.content}}</p>
         <!--    <a href="#" class="btn btn-primary">Go somewhere</a>-->
         {% if user in post.like_users.all %}
         <a href="{% url 'posts:likes' post.id %}"><i class="fas fa-heart" style="color:#ed4956"></i></a>
@@ -20,6 +24,7 @@
         <a class="btn btn-warning" href="{% url 'posts:delete' post.id %}">삭제</a>
         {% endif %}
     </div>
+    {% if request.resolver_match.url_name == 'index' %}
     <!--  댓글 출력 시작   -->
     <div class="card-body">
         {% for comment in post.comment_set.all%}
@@ -39,4 +44,5 @@
         </form>
     </div>
     <!--  댓글 폼 끝  -->
+    {% endif %}
 </div>
