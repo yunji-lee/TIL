@@ -10,5 +10,6 @@ urlpatterns = [
 
     path('<int:user_id>', views.user_page, name='user_page'),
     path('<int:user_id>/follow/', views.follow, name='follow'),
+    path('<int:user_id>/update/', views.update, name="update"),
 ]
 

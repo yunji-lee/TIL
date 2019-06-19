@@ -2,9 +2,23 @@ from django.shortcuts import render, redirect
 from .forms import PostForm, CommentForm
 from .models import Post, Comment
 from django.contrib.auth.decorators import login_required
+from itertools import chain
 
 
+@login_required
 def index(request):
+    user_follow = request.user.follow.all()  # user in user.follow.all() 와 같은 말
+    follow_list = chain(user_follow, [request.user])
+    posts = Post.objects.order_by('-id').filter(user__in=follow_list)
+    comment_form = CommentForm()
+    context = {
+        'posts': posts,
+        'comment_form': comment_form,
+    }
+    return render(request, 'posts/index.html', context)
+
+
+def all(request):
     posts = Post.objects.all().order_by('-id')
     comment_form = CommentForm()
     context = {

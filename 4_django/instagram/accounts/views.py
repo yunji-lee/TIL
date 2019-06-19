@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
-from .forms import CustomUserCreationForm
+from .forms import CustomUserCreationForm, CustomUserChangeForm
 from .models import User
 
 
@@ -68,3 +68,18 @@ def follow(request, user_id):
     return redirect('accounts:user_page', you.id)
     #   return redirect(f"/posts/#post_{post.id}")
     # return redirect('accounts:user_page', user_id)
+
+
+def update(request, user_id):
+    me = request.user
+    you = User.objects.get(id=user_id)
+    if me == you:
+        if request.method == "POST":
+            form = CustomUserChangeForm(request.POST, request.FILES, instance=you)
+            if form.is_valid():
+                form.save()
+                return redirect('accounts:user_page', user_id)
+        else:
+            form = CustomUserChangeForm(instance=you)  # 기존의 정보를 담아서 보여주기
+        return render(request, 'accounts/update.html', {'form': form})
+    return redirect('posts:index')

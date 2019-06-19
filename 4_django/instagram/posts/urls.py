@@ -6,6 +6,7 @@ app_name = 'posts'
 urlpatterns = [
     # Read - 전체글보기
     path('', views.index, name='index'),
+    path('all', views.all, name='all'),
 
     # Create - 포스트 작성하기
     path('create/', views.create, name='create'),

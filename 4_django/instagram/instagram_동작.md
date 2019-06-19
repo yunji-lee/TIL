@@ -1283,3 +1283,282 @@ def create(request):
 
 ----
 
+6/19
+
+- 뭐하는거지?
+
+  1) accounts/urls.py
+
+  ```python
+  path('<int:user_id>/update/', views.update, name="update"),
+  ```
+
+  2) views.py
+
+  ```python
+  from .forms import CustomUserChangeForm
+  
+  def update(request, user_id):
+      me = request.user
+      you = User.objects.get(id=user_id)
+      if me == you:
+          if request.method == "POST":
+              form = CustomUserChangeForm(request.POST, request.FILES, instance=you)
+              if form.is_valid():
+                  form.save()
+                  return redirect('accounts:user_page', user_id)
+          else:
+              form = CustomUserChangeForm(instance=you)  # 기존의 정보를 담아서 보여주기
+          return render(request, 'accounts/update.html', {'form': form})
+      return redirect('posts:index')
+  ```
+
+  3) forms.py
+
+  ```python
+  from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+  
+  class CustomUserChangeForm(UserChangeForm):
+      password = None
+      class Meta:
+          model = User
+          fields = ('email', 'introduce', 'image',)
+  ```
+
+  4) accounts/templates/accounts/update.html 생성 및 입력
+
+  ```html
+  {% extends 'posts/base.html' %}
+  
+  {%load bootstrap4%}
+  
+  {% block body %}
+      <form action="" method="post">
+          <!-- csrf_token은 post메소드를 사용하기 위함        -->
+          {% csrf_token %}
+          {% bootstrap_form form %}
+          <input class="btn btn-primary" type="submit" value="정보수정">
+      </form>
+  {% endblock %}
+  ```
+
+  5) models.py
+
+  ```python
+  from django.db import models
+  from django.contrib.auth.models import AbstractUser
+  from django.conf import settings
+  from imagekit.models import ProcessedImageField
+  from imagekit.processors import ResizeToFill
+  
+  
+  class User(AbstractUser):
+      follow = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="follower")  # settiong의 맨 아래에 선언한 user
+      introduce = models.TextField(blank=True)
+      image = ProcessedImageField(
+          upload_to='accounts/images',  # 올리는 위치 설정
+          processors=[ResizeToFill(150, 150)],  #
+          format='JPEG',  #
+          options={'quality': 90},  # 원본대비 품질 설정
+          blank=True,
+      )
+  ```
+
+
+
+- 팔로우한 사람의 게시물만 볼 수 있도록하기
+
+  1) posts/views.py
+
+  ```python
+  from django.shortcuts import render, redirect
+  from .forms import PostForm, CommentForm
+  from .models import Post, Comment
+  from django.contrib.auth.decorators import login_required
+  from itertools import chain
+  
+  
+  @login_required
+  def index(request):
+      user_follow = request.user.follow.all()  # user in user.follow.all() 와 같은 말
+      follow_list = chain(user_follow, [request.user])
+      posts = Post.objects.order_by(-id).filter(user__in=follow_list)
+      comment_form = CommentForm()
+      context = {
+          'posts': posts,
+          'comment_form': comment_form,
+      }
+      return render(request, 'posts/index.html', context)
+  
+  
+  def all(request):
+      posts = Post.objects.all().order_by('-id')
+      comment_form = CommentForm()
+      context = {
+          'posts':posts,
+          'comment_form':comment_form,
+      }
+      return render(request, 'posts/index.html', context)
+  ```
+
+  2) base.html
+
+  ```html
+          <div class="navbar-nav">
+              <a class="nav-item nav-link active" href="{% url 'posts:all' %}"> All <span class="sr-only">(current)</span></a>
+              <a class="nav-item nav-link active" href="{% url 'posts:create' %}"> NEW <span class="sr-only">(current)</span></a>
+              {% if user.is_authenticated %}
+                  <a class="nav-item nav-link" href="{% url 'accounts:logout' %}">LogOut</a>
+                  <a href="{% url 'accounts:user_page' user.id %}">{{user}}님 반갑습니다.</a>
+              {% else %}
+                  <a class="nav-item nav-link" href="{% url 'accounts:signup' %}">SignUp</a>
+                  <a class="nav-item nav-link" href="{% url 'accounts:login' %}">LogIn</a>
+              {% endif %}
+          </div>
+  ```
+
+  3) user_page.html
+
+  ```html
+  <div class="col-8">
+          <!--정보가 보여지는 공간-->
+          <h3>{{user_info.username}}</h3>
+          {% if user != user_info %}
+              {% if user_info in user.follow.all %}
+                  <a class="btn btn-primary" href="{% url 'accounts:follow' user_info.id %}">
+                      팔로우 취소
+      		   </a>
+              {% else %}
+                  <a class="btn btn-primary" href="{% url 'accounts:follow' user_info.id %}">
+                      팔로우
+      		   </a>
+              {% endif %}
+          {% else %}
+              <a class="btn btn-warning" href="{% url 'accounts:update' user.id %}">
+                  프로필수정
+      	   </a>
+  <!--  둘다가능 <a class="btn btn-warning" href="{% url 'accounts:update' user_info.id %}">프로필수정</a>-->
+          {% endif %}
+          <div class="d-flex justify-content-start">
+              <p class="row mx-2">게시물 {{user_info.post_set.count}}</p>
+              <p class="row mx-2">팔로워 {{user_info.follower.count}}</p>
+              <p class="row mx-2">팔로우 {{user_info.follow.count}}</p>
+          </div>
+          <div>
+              {{ user_info.introduce }}
+          </div>
+  </div>
+  
+  ```
+
+  4) update.html
+
+  ```html
+  {% extends 'posts/base.html' %}
+  
+  {%load bootstrap4%}
+  
+  {% block body %}
+      <form action="" method="post" enctype="multipart/form-data">
+          <!-- csrf_token은 post메소드를 사용하기 위함        -->
+          {% csrf_token %}
+          {% bootstrap_form form %}
+          <input class="btn btn-primary" type="submit" value="정보수정">
+      </form>
+  {% endblock %}
+  ```
+
+  5) posts/urls.py
+
+  ```python
+      path('<int:post_id>/likes', views.likes, name="likes"),
+  ```
+
+  6) instagram/urls.py
+
+  ```python
+  """instagram URL Configuration
+  
+  The `urlpatterns` list routes URLs to views. For more information please see:
+      https://docs.djangoproject.com/en/2.1/topics/http/urls/
+  Examples:
+  Function views
+      1. Add an import:  from my_app import views
+      2. Add a URL to urlpatterns:  path('', views.home, name='home')
+  Class-based views
+      1. Add an import:  from other_app.views import Home
+      2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+  Including another URLconf
+      1. Import the include() function: from django.urls import include, path
+      2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+  """
+  from django.conf.urls.static import static
+  from django.conf import settings
+  from django.contrib import admin
+  from django.urls import path, include
+  from posts import views
+  
+  urlpatterns = [
+      path('', views.all),
+      path('admin/', admin.site.urls),
+      path('posts/', include('posts.urls')),  # posts라는 url은 posts.urls로 모두 포함
+      path('accounts/', include('accounts.urls'))
+  ]
+  
+  urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+  #urlpatterns += static('/media/')로 사용해도 되지만 변수화하여 사용하는게 좋으므로 위의 코드를 사용
+  ```
+
+  7) settings.py
+
+  :  https://django-allauth.readthedocs.io/en/latest/installation.html
+
+  ```python
+  INSTALLED_APPS = [
+      'django.contrib.admin',
+      'django.contrib.auth',
+      'django.contrib.contenttypes',
+      'django.contrib.sessions',
+      'django.contrib.messages',
+      'django.contrib.staticfiles',  
+      'django.contrib.sites',  # 여기 추가
+      'posts',
+      'bootstrap4',
+      'imagekit',
+      'accounts',
+  	# 아래 추가
+      'allauth',
+      'allauth.account',
+      'allauth.socialaccount',
+  	# 아래 추가
+      'allauth.socialaccount.providers.kakao',
+  ]
+  
+  
+  
+  AUTHENTICATION_BACKENDS = (
+      # Needed to login by username in Django admin, regardless of `allauth`
+      'django.contrib.auth.backends.ModelBackend',
+  
+      # `allauth` specific authentication methods, such as login by e-mail
+      'allauth.account.auth_backends.AuthenticationBackend',
+  )
+  
+  SITE_ID = 1
+  ```
+
+  8)
+
+  :  <https://d2.naver.com/helloworld/24942> : 설명
+
+  : 카카오 개발자 -> 일반->?? 앱설정->고급->사용자관리
+
+  : 이후에 admin페이지에서 앱추가하기
+
+  : login.html
+
+  ```html
+  
+  ```
+
+  

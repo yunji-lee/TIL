@@ -1,13 +1,12 @@
 {% extends 'posts/base.html' %}
+
 {%load bootstrap4%}
-{% load socialaccount %}
 
 {% block body %}
-    <form action="" method="post">
+    <form action="" method="post" enctype="multipart/form-data">
         <!-- csrf_token은 post메소드를 사용하기 위함        -->
         {% csrf_token %}
         {% bootstrap_form form %}
-        <input class="btn btn-primary" type="submit" value="로그인">
+        <input class="btn btn-primary" type="submit" value="정보수정">
     </form>
-    <a href="{% provider_login_url 'kakao' %}">카카오 로그인</a>
 {% endblock %}
