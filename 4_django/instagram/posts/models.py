@@ -4,6 +4,13 @@ from django.db import models
 from django.conf import settings
 
 
+class HashTag(models.Model):
+    content = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.content
+
+
 class Post(models.Model):
     like_users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='like_posts')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -15,6 +22,7 @@ class Post(models.Model):
         format='JPEG',                        #
         options={'quality': 90}               # 원본대비 품질 설정
     )
+    hashtags = models.ManyToManyField(HashTag, blank=True)
 
 
 class Comment(models.Model):

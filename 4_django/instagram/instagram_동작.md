@@ -1558,7 +1558,56 @@ def create(request):
   : login.html
 
   ```html
+  {% extends 'posts/base.html' %}
+  {%load bootstrap4%}
+  {% load socialaccount %}
   
+  {% block body %}
+      <form action="" method="post">
+          <!-- csrf_token은 post메소드를 사용하기 위함        -->
+          {% csrf_token %}
+          {% bootstrap_form form %}
+          <input class="btn btn-primary" type="submit" value="로그인">
+      </form>
+      <a href="{% provider_login_url 'kakao' %}">카카오 로그인</a>
+  {% endblock %}
   ```
 
   
+
+---
+
+6/20
+
+- 해시태그
+
+  1) post/models.py
+
+  : class HashTag 정의
+
+  : class Post 아래에 hashtags 추가
+
+  ```python
+  class HashTag(models.Model):
+      content = models.CharField(max_length=50, unique=True)
+  
+  
+  class Post(models.Model):
+      like_users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='like_posts')
+      user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+      content = models.TextField()
+      # image = models.ImageField(blank=True)  # makemigrations 하면 사진없어서 2 번으로나오고 blank로 일단 설정
+      image = ProcessedImageField(
+          upload_to='posts/images',            # 올리는 위치 설정
+          processors=[ResizeToFill(600, 600)],  #
+          format='JPEG',                        #
+          options={'quality': 90}               # 원본대비 품질 설정
+      )
+      hashtags = models.ManyToManyField(HashTag, blank=True)
+  ```
+
+  
+
+
+
+- 
